@@ -1,6 +1,16 @@
 # Document Web Crawler
 
-A powerful web crawler that can extract content from web pages through browser automation or direct URL processing. Uses LlamaIndex for vector storage and retrieval.
+A powerful web crawler that can extract content from web pages through browser automation or direct URL processing. Uses LlamaIndex for vector storage and retrieval, enabling semantic search capabilities through OpenAI embeddings.
+
+## Features
+
+- **Dual Crawling Modes**:
+  - Browser Mode: Interactive crawling through Chrome automation
+  - URL List Mode: Batch processing of URLs from a text file
+- **Vector Storage**: Uses LlamaIndex with ChromaDB for efficient storage and retrieval
+- **Semantic Search**: OpenAI embeddings for intelligent content searching
+- **Persistent Storage**: Saves crawled content for future queries
+- **Flexible Output**: Support for both human-readable and JSON formats
 
 ## Setup
 
@@ -32,31 +42,20 @@ psql postgres -c "\du"
 PGPASSWORD=your_secure_password psql -U crawler_user -d document_crawler -c "SELECT 1;"
 ```
 
-#### Environment Configuration
+### 2. Environment Configuration
 ```bash
 # Copy the example environment file
 cp .env.example .env
 
-# Update the .env file with your database credentials
-# Edit these values in .env:
+# Update the .env file with your credentials:
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=document_crawler
 DB_USER=crawler_user
 DB_PASSWORD=your_secure_password  # Replace with your chosen password
+OPENAI_API_KEY=your_openai_api_key  # Required for embeddings
+VECTOR_STORE_DIR=./vector_store  # Optional, defaults to ./vector_store
 ```
-
-### 2. Conda Environment Setup
-
-1. Install Conda if you haven't already
-2. Create the environment:
-   ```bash
-   conda env create -f environment.yaml
-   ```
-3. Activate the environment:
-   ```bash
-   conda activate document_web_crawler
-   ```
 
 ### 3. ChromeDriver Setup
 
@@ -83,65 +82,108 @@ sudo xattr -d com.apple.quarantine /opt/homebrew/bin/chromedriver
 - Windows: Download ChromeDriver from [official site](https://sites.google.com/chromium.org/driver/) and add to PATH
 - Linux: Install via package manager (e.g., `apt install chromium-chromedriver`)
 
+### 4. Python Environment Setup
+
+1. Install Conda if you haven't already
+2. Create the environment:
+   ```bash
+   conda env create -f environment.yaml
+   ```
+3. Activate the environment:
+   ```bash
+   conda activate document_web_crawler
+   ```
+
 ## Usage
 
-The crawler can be used in two modes:
+### 1. Crawling Websites
 
-1. Browser Integration Mode:
+#### URL List Mode
+1. Create a text file with URLs (one per line):
    ```bash
-   python src/crawler.py --mode browser
+   echo "https://example.com" > urls.txt
    ```
-   This will launch a browser session where you can navigate to pages you want to crawl.
-
-2. URL List Mode:
+2. Run the crawler:
    ```bash
    python src/crawler.py --mode urls --input urls.txt
    ```
-   This will process a list of URLs from a text file.
+
+#### Browser Mode
+1. Run the crawler in interactive mode:
+   ```bash
+   python src/crawler.py --mode browser
+   ```
+2. The browser will open, and you can navigate to pages you want to crawl
+3. Follow the prompts to process or skip pages
+
+### 2. Querying Crawled Data
+
+Basic search:
+```bash
+python src/query_data.py "your search query here"
+```
+
+Options:
+- Control number of results:
+  ```bash
+  python src/query_data.py "your query" --k 10
+  ```
+- Get JSON output:
+  ```bash
+  python src/query_data.py "your query" --json
+  ```
 
 ## Project Structure
 
-- `src/`: Source code directory
-  - `crawler.py`: Main crawler implementation
-  - `browser_manager.py`: Browser automation utilities
-  - `vector_store.py`: LlamaIndex vector store management
-  - `db/`: Database models and utilities
-- `tests/`: Test files
-- `.env.example`: Example environment variables
-- `environment.yaml`: Conda environment specification
+```
+.
+├── src/
+│   ├── crawler.py          # Main crawler implementation
+│   ├── browser_manager.py  # Browser automation utilities
+│   ├── vector_store.py     # LlamaIndex vector store management
+│   ├── query_data.py       # Query interface for crawled data
+│   └── db/                 # Database models and utilities
+├── vector_store/          # Persistent storage for vectors
+├── tests/                # Test files
+├── .env.example         # Example environment variables
+├── environment.yaml     # Conda environment specification
+└── README.md           # This file
+```
+
+## Security Notes
+
+- Never commit `.env` file to version control
+- Use strong passwords for database credentials
+- Keep your environment files secure
+- Store API keys securely
+- Each developer should maintain their own `.env` file
 
 ## Troubleshooting
 
-### PostgreSQL Issues
+### Vector Store Issues
+- If the index isn't found:
+  ```bash
+  rm -rf ./vector_store/*  # Clear the vector store
+  ```
+  Then re-crawl your pages
 
+### ChromeDriver Issues
+- If ChromeDriver fails to start:
+  1. Check Chrome and ChromeDriver versions match
+  2. Verify ChromeDriver is in PATH
+  3. Remove quarantine attribute (macOS)
+  4. Check security settings
+
+### PostgreSQL Issues
 1. If PostgreSQL is not running:
    ```bash
-   # Start PostgreSQL service
    brew services start postgresql
-   
-   # Check status
    brew services list | grep postgresql
    ```
-
-2. If you can't connect to the database:
+2. Connection issues:
    - Verify PostgreSQL is running
-   - Check your credentials in `.env`
-   - Ensure the database exists:
+   - Check credentials in `.env`
+   - Ensure database exists:
      ```bash
      psql postgres -c "\l" | grep document_crawler
-     ```
-
-3. To reset credentials:
-   ```bash
-   # Change user password
-   psql postgres -c "ALTER USER crawler_user WITH PASSWORD 'new_password';"
-   
-   # Don't forget to update your .env file after changing the password
-   ```
-
-### Security Notes
-
-- Never commit the `.env` file to version control
-- Use strong passwords for database credentials
-- Keep your environment files secure
-- Each developer should maintain their own `.env` file with their credentials 
+     ``` 
